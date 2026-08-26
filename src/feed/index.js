@@ -48,18 +48,24 @@ export class FeedClient {
    * @param {'public'|'server'} [options.to] - Restrict to a single visibility tier.
    *   Omitted = default merged view (public + server for authed local users).
    *   'public' = public firehose only. 'server' = server-only (requires local auth).
+   * @param {string} [options.kind] - Single attachment-kind filter (photo, video, audio, file)
+   * @param {string[]} [options.kinds] - Multi attachment-kind filter; sent as comma-separated `kind` param.
+   *   Composable with type/types (e.g. `{ type: 'Media', kind: 'photo' }` returns only posts with
+   *   a photo attachment, each filtered down to just that attachment).
    * @param {number} [options.page] - Page number
    * @param {string} [options.since] - ISO date cursor
    * @returns {Promise<Object>}
    */
   async getServerPosts(options = {}) {
-    const { serverId, type, types, to, page, since } = options;
+    const { serverId, type, types, to, kind, kinds, page, since } = options;
 
     const params = {};
     if (serverId) params.serverId = serverId;
     if (types && types.length) params.type = types.join(',');
     else if (type) params.type = type;
     if (to) params.to = to;
+    if (kinds && kinds.length) params.kind = kinds.join(',');
+    else if (kind) params.kind = kind;
     if (page) params.page = page;
     if (since) params.since = since;
 
