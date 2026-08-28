@@ -129,7 +129,7 @@ export class FeedClient {
   }
 
   async getCirclePosts(options) {
-    const { circleId, types, type, before, limit } = options;
+    const { circleId, types, type, before, limit, kind, kinds } = options;
 
     if (!circleId) throw new ValidationError('circleId is required');
 
@@ -139,6 +139,8 @@ export class FeedClient {
     if (typeList?.length) params.types = typeList.join(',');
     if (before) params.before = before;
     if (limit) params.limit = limit;
+    if (kinds && kinds.length) params.kind = kinds.join(',');
+    else if (kind) params.kind = kind;
 
     return await this.http.get(`/circles/${encodeURIComponent(circleId)}/posts`, { params });
   }
@@ -152,13 +154,15 @@ export class FeedClient {
    * @returns {Promise<Object>}
    */
   async getGroupPosts(options) {
-    const { groupId, type, page } = options;
+    const { groupId, type, page, kind, kinds } = options;
 
     if (!groupId) throw new ValidationError('groupId is required');
 
     const params = {};
     if (type) params.type = type;
     if (page) params.page = page;
+    if (kinds && kinds.length) params.kind = kinds.join(',');
+    else if (kind) params.kind = kind;
 
     return await this.http.get(`/groups/${encodeURIComponent(groupId)}/posts`, { params });
   }
@@ -173,7 +177,7 @@ export class FeedClient {
    * @returns {Promise<Object>}
    */
   async getUserPosts(options) {
-    const { userId, type, page, since, sort } = options;
+    const { userId, type, page, since, sort, kind, kinds } = options;
 
     if (!userId) throw new ValidationError('userId is required');
 
@@ -182,6 +186,8 @@ export class FeedClient {
     if (page) params.page = page;
     if (since) params.since = since;
     if (sort) params.sort = sort;
+    if (kinds && kinds.length) params.kind = kinds.join(',');
+    else if (kind) params.kind = kind;
 
     return await this.http.get(`/users/${encodeURIComponent(userId)}/posts`, { params });
   }
