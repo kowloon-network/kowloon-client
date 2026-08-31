@@ -328,7 +328,7 @@ export class AdminClient {
     return await this.http.post(`/admin/pages/${encodeURIComponent(pageId)}/restore`);
   }
 
-  // ---- Discover: recommendation shelves ----
+  // ---- Discover: shelves + discovery items ----
 
   async getSections(options = {}) {
     return await this.http.get('/admin/sections', { params: this._listParams(options) });
@@ -359,36 +359,36 @@ export class AdminClient {
     return await this.http.delete(`/admin/sections/${encodeURIComponent(sectionId)}`, { params });
   }
 
-  async getRecommendations(options = {}) {
+  async getDiscoveryItems(options = {}) {
     const { section, refType, ...rest } = options;
     const params = this._listParams(rest);
     if (section) params.section = section;
     if (refType) params.refType = refType;
-    return await this.http.get('/admin/recommendations', { params });
+    return await this.http.get('/admin/discovery', { params });
   }
 
-  async addRecommendation(options = {}) {
+  async addDiscoveryItem(options = {}) {
     const { ref, section, note, order } = options;
     if (!ref) throw new ValidationError('ref is required');
     if (!section) throw new ValidationError('section is required');
     const body = { ref, section };
     if (note !== undefined) body.note = note;
     if (order !== undefined) body.order = order;
-    return await this.http.post('/admin/recommendations', body);
+    return await this.http.post('/admin/discovery', body);
   }
 
-  async updateRecommendation(options) {
-    const { recommendationId, updates } = options;
-    if (!recommendationId) throw new ValidationError('recommendationId is required');
-    return await this.http.patch(`/admin/recommendations/${encodeURIComponent(recommendationId)}`, updates);
+  async updateDiscoveryItem(options) {
+    const { discoveryId, updates } = options;
+    if (!discoveryId) throw new ValidationError('discoveryId is required');
+    return await this.http.patch(`/admin/discovery/${encodeURIComponent(discoveryId)}`, updates);
   }
 
-  async removeRecommendation(options) {
-    const { recommendationId, fullDelete } = options;
-    if (!recommendationId) throw new ValidationError('recommendationId is required');
+  async removeDiscoveryItem(options) {
+    const { discoveryId, fullDelete } = options;
+    if (!discoveryId) throw new ValidationError('discoveryId is required');
     const params = {};
     if (fullDelete) params.fullDelete = 'true';
-    return await this.http.delete(`/admin/recommendations/${encodeURIComponent(recommendationId)}`, { params });
+    return await this.http.delete(`/admin/discovery/${encodeURIComponent(discoveryId)}`, { params });
   }
 
   // ---- Invites ----

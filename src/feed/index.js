@@ -313,8 +313,8 @@ export class FeedClient {
    * local users get public + server-tier items, everyone else public only.
    * @returns {Promise<Object>} { type, sections: [{ id, name, summary, items }] }
    */
-  async getRecommendations() {
-    return await this.http.get('/recommendations');
+  async getDiscovery() {
+    return await this.http.get('/discovery');
   }
 
   // ---- Remote Server Browsing ----

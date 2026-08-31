@@ -2,7 +2,7 @@
 //
 // The server enforces block/mute on everything it serves to an authenticated
 // viewer — but some content is fetched anonymously straight from a REMOTE
-// server (previewing another server's public firehose, its /recommendations,
+// server (previewing another server's public firehose, its /discovery,
 // etc.). A remote server has no idea who's asking in that case, and can't
 // apply your blocks/mutes for you — RS256 JWTs are signed per-server, so a
 // token from your home server can't even be verified by a different one.
@@ -122,7 +122,7 @@ export class ModerationClient {
   }
 
   /**
-   * Filter a list of feed-shaped items (posts, recommendation entries, …),
+   * Filter a list of feed-shaped items (posts, discovery items, …),
    * dropping anything from a blocked/muted actor or server. Synchronous —
    * call load() first (or ensure it's already resolved) so the cache is
    * populated; if it isn't, this is a harmless no-op (fails open).
