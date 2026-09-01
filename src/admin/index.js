@@ -4,6 +4,19 @@
 
 import { ValidationError } from '../utils/errors.js';
 
+// DiscoverySection.contentType by curatable refType — single source of truth
+// so web/mobile "Add to Discovery" UIs don't each hardcode this mapping (and
+// drift from the server's contentType enum in schema/DiscoverySection.js).
+// A section is one-per-type (locked design decision), so the caller doesn't
+// need to ask the admin which shelf to use — it's implied by what they're
+// curating.
+export const DISCOVERY_CONTENT_TYPE_BY_REF_TYPE = {
+  Post: 'posts',
+  Circle: 'circles',
+  Group: 'groups',
+  Server: 'servers',
+};
+
 /**
  * Admin client — all methods hit /admin/* endpoints
  * Bypasses normal visibility, can optionally include soft-deleted items.
