@@ -33,12 +33,17 @@ export class AdminClient {
    * Build standard list params
    * @private
    */
-  _listParams({ page, since, showDeleted, type } = {}) {
+  _listParams({ page, since, showDeleted, type, deleted, search } = {}) {
     const params = {};
     if (page) params.page = page;
     if (since) params.since = since;
+    // showDeleted was the only way to reach ?deleted=, so a caller passing a
+    // raw `deleted` value (e.g. AdminUsersPage's "All" filter, deleted:
+    // 'include') was silently dropped -- never reached the server.
     if (showDeleted) params.deleted = 'true';
+    else if (deleted) params.deleted = deleted;
     if (type) params.type = type;
+    if (search) params.search = search;
     return params;
   }
 
