@@ -33,7 +33,7 @@ export class AdminClient {
    * Build standard list params
    * @private
    */
-  _listParams({ page, since, showDeleted, type, deleted, search } = {}) {
+  _listParams({ page, since, showDeleted, type, deleted, search, status, targetType, actorId } = {}) {
     const params = {};
     if (page) params.page = page;
     if (since) params.since = since;
@@ -44,6 +44,12 @@ export class AdminClient {
     else if (deleted) params.deleted = deleted;
     if (type) params.type = type;
     if (search) params.search = search;
+    // status was missing entirely -- getFlagged({ status: filter }) (the
+    // Moderation page's Open/Resolved/Dismissed tabs) silently always fell
+    // back to the server's own "open" default, no matter which tab was active.
+    if (status) params.status = status;
+    if (targetType) params.targetType = targetType;
+    if (actorId) params.actorId = actorId;
     return params;
   }
 
@@ -469,6 +475,35 @@ export class AdminClient {
     if (!flagId) throw new ValidationError('flagId is required');
     if (!['resolved', 'dismissed'].includes(status)) throw new ValidationError("status must be 'resolved' or 'dismissed'");
     return await this.http.patch(`/admin/flagged/${encodeURIComponent(flagId)}`, { status, notes });
+  }
+
+  // Dismiss with no action on the target. Notifies the reporter only.
+  async ignoreFlag(options) {
+    const { flagId } = options;
+    if (!flagId) throw new ValidationError('flagId is required');
+    return await this.http.post(`/admin/flagged/${encodeURIComponent(flagId)}/ignore`);
+  }
+
+  // Soft-delete the flagged item. Notifies the reporter and the item's author.
+  async removeFlaggedItem(options) {
+    const { flagId } = options;
+    if (!flagId) throw new ValidationError('flagId is required');
+    return await this.http.post(`/admin/flagged/${encodeURIComponent(flagId)}/remove`);
+  }
+
+  // Permanently delete the flagged item (no undo). Notifies the reporter and
+  // the item's author.
+  async hardDeleteFlaggedItem(options) {
+    const { flagId } = options;
+    if (!flagId) throw new ValidationError('flagId is required');
+    return await this.http.post(`/admin/flagged/${encodeURIComponent(flagId)}/hard-delete`);
+  }
+
+  // Deactivate the flagged item's author account. Notifies the reporter only.
+  async blockFlaggedAuthor(options) {
+    const { flagId } = options;
+    if (!flagId) throw new ValidationError('flagId is required');
+    return await this.http.post(`/admin/flagged/${encodeURIComponent(flagId)}/block`);
   }
 
   // ---- Settings ----
