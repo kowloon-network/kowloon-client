@@ -409,6 +409,12 @@ export class AdminClient {
     return await this.http.delete(`/admin/discovery/${encodeURIComponent(discoveryId)}`, { params });
   }
 
+  async restoreDiscoveryItem(options) {
+    const { discoveryId } = options;
+    if (!discoveryId) throw new ValidationError('discoveryId is required');
+    return await this.http.post(`/admin/discovery/${encodeURIComponent(discoveryId)}/restore`);
+  }
+
   // ---- Invites ----
 
   async createInvite(options = {}) {
