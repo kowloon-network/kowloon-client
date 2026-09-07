@@ -48,6 +48,26 @@ export class OAuthClient {
     await this.auth.setSession(response.token, response.user);
     return { user: response.user, token: response.token };
   }
+
+  /**
+   * List foreign domains this user has an active grant with — i.e. servers
+   * currently able to act as them via a cross-server session.
+   * @returns {Promise<Array<{ clientDomain: string, grantedAt: string, expiresAt: string }>>}
+   */
+  async listGrants() {
+    const response = await this.http.get('/oauth/grants');
+    return response.grants || [];
+  }
+
+  /**
+   * Revoke an active grant early, before it would otherwise expire.
+   * @param {Object} options
+   * @param {string} options.clientDomain
+   * @returns {Promise<{ revoked: boolean }>}
+   */
+  async revoke({ clientDomain }) {
+    return await this.http.post('/oauth/revoke', { clientDomain });
+  }
 }
 
 export default OAuthClient;
