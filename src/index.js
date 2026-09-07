@@ -11,6 +11,7 @@ import { NotificationsClient } from './notifications/index.js';
 import { ThemesClient } from './themes/index.js';
 import { AdminClient } from './admin/index.js';
 import { ModerationClient } from './moderation/index.js';
+import { OAuthClient } from './oauth/index.js';
 import { detectStorage } from './utils/storage.js';
 
 /**
@@ -71,6 +72,9 @@ export class KowloonClient {
 
     // Admin client
     this.admin = new AdminClient(this.http);
+
+    // OAuth client — cross-server identity (see server's routes/oauth/*)
+    this.oauth = new OAuthClient(this.http, this.auth);
   }
 
   /**
@@ -93,6 +97,7 @@ export { NotificationsClient } from './notifications/index.js';
 export { ThemesClient } from './themes/index.js';
 export { AdminClient } from './admin/index.js';
 export { ModerationClient } from './moderation/index.js';
+export { OAuthClient } from './oauth/index.js';
 export * from './prefs/manifest.js';
 export * from './prefs/pins.js';
 export * from './embeds/index.js';

@@ -123,6 +123,19 @@ export class AuthClient {
   }
 
   /**
+   * Adopt an already-issued token + user (e.g. a visiting session token
+   * returned by client.oauth.exchange()) without hitting /auth/login.
+   * @param {string} token
+   * @param {Object} user
+   * @returns {Promise<void>}
+   */
+  async setSession(token, user) {
+    this._token = token;
+    this._user = user;
+    await setToken(this._token, 'kowloon_token', this.storage);
+  }
+
+  /**
    * Logout (clear token and user)
    * @returns {Promise<void>}
    */
