@@ -85,6 +85,29 @@ export class AdminClient {
     return await this.http.get('/admin/users', { params: this._listParams(options) });
   }
 
+  /**
+   * Create an account directly, bypassing registration (invite codes, open/
+   * closed registration). Omit `password` and the server generates a strong
+   * one and returns it as `generatedPassword` — returned exactly once, so
+   * surface it to the admin rather than discarding it.
+   * @param {Object} options
+   * @param {string} options.username - lowercase letters, numbers, underscores
+   * @param {string} [options.password] - omit to have one generated
+   * @param {string} [options.email]
+   * @param {string} [options.name] - display name
+   * @returns {Promise<{ok: boolean, user: Object, generatedPassword?: string}>}
+   */
+  async createUser(options = {}) {
+    const { username, password, email, name } = options;
+    if (!username) throw new ValidationError('username is required');
+    return await this.http.post('/admin/users', {
+      username,
+      ...(password ? { password } : {}),
+      ...(email ? { email } : {}),
+      ...(name ? { name } : {}),
+    });
+  }
+
   async getUser(options) {
     const { userId } = options;
     if (!userId) throw new ValidationError('userId is required');
