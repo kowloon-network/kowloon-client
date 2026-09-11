@@ -191,6 +191,36 @@ export class AuthClient {
   }
 
   /**
+   * Change the logged-in user's password.
+   * Returns a fresh token, which replaces the stored one so the current
+   * session survives the change. Other existing sessions are NOT signed out —
+   * tokens are stateless and stay valid until they expire.
+   * @param {Object} passwords
+   * @param {string} passwords.currentPassword
+   * @param {string} passwords.newPassword
+   * @returns {Promise<{ok: boolean, token: string}>}
+   */
+  async changePassword({ currentPassword, newPassword } = {}) {
+    if (!currentPassword || !newPassword) {
+      throw new AuthenticationError(
+        'Current password and new password are required'
+      );
+    }
+
+    const response = await this.http.post('/auth/change-password', {
+      currentPassword,
+      newPassword,
+    });
+
+    if (response?.token) {
+      this._token = response.token;
+      await setToken(this._token, 'kowloon_token', this.storage);
+    }
+
+    return response;
+  }
+
+  /**
    * Decode JWT token (client-side only, does NOT verify signature)
    * @private
    * @param {string} token - JWT token
