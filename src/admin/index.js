@@ -481,6 +481,46 @@ export class AdminClient {
     return await this.http.delete(`/admin/invites/${encodeURIComponent(inviteId)}`);
   }
 
+  // ---- Server moderation ----
+
+  /**
+   * Servers currently blocked or suspended by this server's admins.
+   * @returns {Promise<{servers: Array, total: number}>}
+   */
+  async getModeratedServers() {
+    return await this.http.get('/admin/servers/moderated');
+  }
+
+  /**
+   * Block or defederate another server.
+   * @param {Object} options
+   * @param {string} options.server - "@example.org", "https://example.org" or
+   *   "example.org" -- all three resolve to the same server.
+   * @param {'blocked'|'suspended'} options.level - 'blocked' refuses replies
+   *   and reacts but keeps pulling content, so existing subscribers don't
+   *   lose what they follow. 'suspended' is full defederation.
+   * @param {string} [options.reason]
+   */
+  async moderateServer(options) {
+    const { server, level, reason } = options || {};
+    if (!server) throw new ValidationError('server is required');
+    if (!['blocked', 'suspended'].includes(level)) {
+      throw new ValidationError("level must be 'blocked' or 'suspended'");
+    }
+    return await this.http.post('/admin/servers/moderate', {
+      server,
+      level,
+      ...(reason ? { reason } : {}),
+    });
+  }
+
+  /** Clear whichever level is set and return the server to active. */
+  async unmoderateServer(options) {
+    const { server } = options || {};
+    if (!server) throw new ValidationError('server is required');
+    return await this.http.post('/admin/servers/unmoderate', { server });
+  }
+
   // ---- Moderation ----
 
   async getFlagged(options = {}) {
