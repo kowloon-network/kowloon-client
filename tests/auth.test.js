@@ -4,6 +4,7 @@
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert';
 import { KowloonClient } from '../src/index.js';
+import { getTestInviteCode } from './helpers/invite.js';
 
 // Test configuration
 const BASE_URL = process.env.KOWLOON_BASE_URL || 'http://localhost:3000';
@@ -12,10 +13,12 @@ const TEST_PASSWORD = 'test_password_123';
 
 describe('Kowloon Auth', () => {
   let client;
+  let inviteCode;
 
-  before(() => {
+  before(async () => {
     console.log(`Testing against: ${BASE_URL}`);
     client = new KowloonClient({ baseUrl: BASE_URL });
+    inviteCode = await getTestInviteCode(BASE_URL);
   });
 
   describe('Registration', () => {
@@ -23,6 +26,7 @@ describe('Kowloon Auth', () => {
       const result = await client.auth.register({
         username: TEST_USERNAME,
         password: TEST_PASSWORD,
+        inviteCode,
         email: `${TEST_USERNAME}@test.com`,
         profile: {
           name: 'Test User',
@@ -42,6 +46,7 @@ describe('Kowloon Auth', () => {
         await client.auth.register({
           username: TEST_USERNAME,
           password: TEST_PASSWORD,
+          inviteCode,
         });
         assert.fail('Should have thrown an error for duplicate username');
       } catch (error) {

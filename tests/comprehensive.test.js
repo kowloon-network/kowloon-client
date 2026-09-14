@@ -1,10 +1,13 @@
 // Comprehensive Activities Test Suite
 // Run with: node --test tests/comprehensive.test.js
-// Requires server to be running with registration open (registrationIsOpen: true in settings)
+// Requires the server's first-boot admin account (ADMIN_USERNAME/ADMIN_PASSWORD
+// env vars, or the .env.example defaults) to be reachable — used to mint a
+// shared test invite, since registration always requires one now.
 
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 import { KowloonClient } from '../src/index.js';
+import { getTestInviteCode } from './helpers/invite.js';
 
 // Test configuration
 const BASE_URL = process.env.KOWLOON_BASE_URL || 'http://localhost:3000';
@@ -60,10 +63,12 @@ describe('Kowloon Comprehensive Test Suite', () => {
   let createdOpenGroupId = null;
   let createdApprovalGroupId = null;
   let serverDomain = null;
+  let inviteCode = null;
 
   before(async () => {
     console.log(`\n📡 Testing against: ${BASE_URL}`);
     console.log(`🔑 Creating ${NUM_TEST_USERS} test users...\n`);
+    inviteCode = await getTestInviteCode(BASE_URL);
   });
 
   after(async () => {
@@ -90,6 +95,7 @@ describe('Kowloon Comprehensive Test Suite', () => {
         const result = await client.auth.register({
           username,
           password: TEST_PASSWORD,
+          inviteCode,
           email: `${username}@test.com`,
           profile: { name: `Test User ${i + 1}` },
         });

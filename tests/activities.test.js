@@ -4,6 +4,7 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 import { KowloonClient } from '../src/index.js';
+import { getTestInviteCode } from './helpers/invite.js';
 
 // Test configuration
 const BASE_URL = process.env.KOWLOON_BASE_URL || 'http://localhost:3000';
@@ -22,11 +23,13 @@ describe('Kowloon Activities', () => {
   before(async () => {
     console.log(`Testing against: ${BASE_URL}`);
     client = new KowloonClient({ baseUrl: BASE_URL });
+    const inviteCode = await getTestInviteCode(BASE_URL);
 
     // Register and login first user
     await client.auth.register({
       username: TEST_USERNAME,
       password: TEST_PASSWORD,
+      inviteCode,
       profile: { name: 'Activity Test User' },
     });
 
@@ -35,6 +38,7 @@ describe('Kowloon Activities', () => {
     const registrationResult = await client2.auth.register({
       username: TEST_USERNAME2,
       password: TEST_PASSWORD,
+      inviteCode,
       profile: { name: 'Activity Test User 2' },
     });
     testUser2Id = registrationResult.user.id;

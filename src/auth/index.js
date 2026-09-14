@@ -45,13 +45,15 @@ export class AuthClient {
   }
 
   /**
-   * Register a new user
+   * Register a new user. Kowloon has no server-wide open-signup switch — every
+   * registration requires a valid invite code, individual or an admin-issued
+   * "open" link (which can itself be unlimited-redemption).
    * @param {Object} credentials
    * @param {string} credentials.username - Username
    * @param {string} credentials.password - Password
+   * @param {string} credentials.inviteCode - Invite code (always required)
    * @param {string} [credentials.email] - Email (optional)
    * @param {Object} [credentials.profile] - Profile data (optional)
-   * @param {string} [credentials.inviteCode] - Invite code (when registration is closed)
    * @param {string[]} [credentials.acknowledgedRules] - IDs of every server rule the user ticked off
    * @returns {Promise<Object>} { user, token }
    */
@@ -60,6 +62,9 @@ export class AuthClient {
 
     if (!username || !password) {
       throw new AuthenticationError('Username and password are required');
+    }
+    if (!inviteCode) {
+      throw new AuthenticationError('An invite code is required to register');
     }
 
     const response = await this.http.post('/register', {
