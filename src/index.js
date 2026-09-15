@@ -101,6 +101,7 @@ export { OAuthClient } from './oauth/index.js';
 export * from './prefs/manifest.js';
 export * from './prefs/pins.js';
 export * from './embeds/index.js';
+export * from './utils/kowloonId.js';
 export * from './utils/errors.js';
 export * from './utils/storage.js';
 
