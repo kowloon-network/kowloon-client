@@ -11,8 +11,7 @@
     "./feed": "./src/feed/index.js",
     "./search": "./src/search/index.js",
     "./admin": "./src/admin/index.js",
-    "./embeds": "./src/embeds/index.js",
-    "./theme/palette.json": "./src/theme/palette.json"
+    "./embeds": "./src/embeds/index.js"
   },
   "scripts": {
     "test": "node --test tests/**/*.test.js",
