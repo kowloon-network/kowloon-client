@@ -104,5 +104,6 @@ export * from './embeds/index.js';
 export * from './utils/kowloonId.js';
 export * from './utils/errors.js';
 export * from './utils/storage.js';
+export * from './utils/timeAgo.js';
 
 export default KowloonClient;
