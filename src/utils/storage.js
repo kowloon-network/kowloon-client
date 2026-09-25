@@ -13,7 +13,11 @@ function detectStorage() {
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       return new AsyncStorageAdapter(AsyncStorage);
     } catch (e) {
-      console.warn('React Native detected but AsyncStorage not available. Using memory storage.');
+      // Falling back to MemoryStorage means sessions don't survive an app
+      // restart -- not cosmetic. Logging e.message (not just a generic
+      // string) so a future "why am I getting logged out" investigation has
+      // the actual native-module error to go on instead of nothing.
+      console.warn(`React Native detected but AsyncStorage not available (${e?.message || e}). Using memory storage.`);
       return new MemoryStorage();
     }
   }
