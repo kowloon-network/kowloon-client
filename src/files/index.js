@@ -26,12 +26,17 @@ export class FilesClient {
    * @param {string} [options.parentObject] - Parent object ID (post/page/etc) — inherits that object's visibility at serve time
    * @param {boolean} [options.generateThumbnail] - Generate thumbnails (for images)
    * @param {number[]} [options.thumbnailSizes] - Thumbnail sizes in px (default [200, 400])
+   * @param {(progress: { loaded: number, total: number, percent: number }) => void} [options.onProgress] -
+   *   Upload progress callback. Fired repeatedly as bytes go out over the wire.
+   *   `total` is 0 (and `percent` is 0) if the browser/runtime can't report a
+   *   content length for this body — treat that as "no progress available"
+   *   rather than "0% forever".
    * @returns {Promise<Object>} { ok, file: { id, url, thumbnails, metadata } }
    */
   async upload(options) {
     const {
       file, filename, contentType, title, summary,
-      to, parentObject, generateThumbnail, thumbnailSizes,
+      to, parentObject, generateThumbnail, thumbnailSizes, onProgress,
     } = options;
 
     if (!file) throw new ValidationError('file is required for upload');
@@ -55,22 +60,56 @@ export class FilesClient {
     if (thumbnailSizes) formData.append('thumbnailSizes', JSON.stringify(thumbnailSizes));
 
     const token = await this.http.getToken();
+    const url = this.http._buildUrl('/files/');
     const headers = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const url = this.http._buildUrl('/files/');
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      throw new Error(body?.error || `Upload failed with status ${response.status}`);
+    // XMLHttpRequest, not fetch(): fetch() has no upload-progress event in
+    // any runtime (browser or React Native) -- XHR's upload.onprogress is
+    // the only way to report real bytes-sent progress on either platform
+    // with one code path (#69, progress-reporting slice only; chunked
+    // resume and mobile background-upload resilience are separate, bigger
+    // pieces of that issue needing their own design work before they're
+    // built -- not done here). Node has no global XMLHttpRequest (this
+    // client is also used from plain Node scripts, e.g. seed-group-images.js)
+    // so fall back to the original fetch() path there -- no progress
+    // reporting in that environment, which is fine, nothing there needs it.
+    if (typeof XMLHttpRequest === 'undefined') {
+      const response = await fetch(url, { method: 'POST', headers, body: formData });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error || `Upload failed with status ${response.status}`);
+      }
+      return await response.json();
     }
 
-    return await response.json();
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url);
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+      if (typeof onProgress === 'function' && xhr.upload) {
+        xhr.upload.onprogress = (event) => {
+          const total = event.lengthComputable ? event.total : 0;
+          const percent = total > 0 ? Math.round((event.loaded / total) * 100) : 0;
+          onProgress({ loaded: event.loaded, total, percent });
+        };
+      }
+
+      xhr.onload = () => {
+        let body = null;
+        try { body = JSON.parse(xhr.responseText); } catch { /* non-JSON error body */ }
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(body);
+        } else {
+          reject(new Error(body?.error || `Upload failed with status ${xhr.status}`));
+        }
+      };
+      xhr.onerror = () => reject(new Error('Upload failed: network error'));
+      xhr.onabort = () => reject(new Error('Upload cancelled'));
+
+      xhr.send(formData);
+    });
   }
 
   /**
