@@ -226,6 +226,26 @@ export class AuthClient {
   }
 
   /**
+   * Permanently delete the logged-in user's account (Apple App Store
+   * Guideline 5.1.1(v) self-service deletion). Requires the current
+   * password. On success the account and its content are gone server-side,
+   * so this clears the local session the same as logout() rather than
+   * storing a token.
+   * @param {Object} options
+   * @param {string} options.password
+   * @returns {Promise<{ok: boolean}>}
+   */
+  async deleteAccount({ password } = {}) {
+    if (!password) {
+      throw new AuthenticationError('Password is required');
+    }
+
+    const response = await this.http.post('/auth/delete-account', { password });
+    await this.logout();
+    return response;
+  }
+
+  /**
    * Decode JWT token (client-side only, does NOT verify signature)
    * @private
    * @param {string} token - JWT token
