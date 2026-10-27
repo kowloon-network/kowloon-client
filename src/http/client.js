@@ -61,6 +61,30 @@ export class HttpClient {
    * @private
    */
   async _fetch(url, options = {}) {
+    try {
+      return await this._fetchOnce(url, options);
+    } catch (error) {
+      // One silent retry for a genuine network-layer failure (the browser's
+      // fetch() throwing before any response arrived -- "Failed to fetch"),
+      // NOT for a timeout/abort. This is the common case right after a laptop
+      // wakes from sleep: the page and its JS are already alive, but the OS
+      // network interface hasn't finished reconnecting yet, so the very next
+      // request fails even though a retry moments later succeeds fine. Safe
+      // to retry blindly here specifically because the request never reached
+      // the server in this failure mode, and every mutating endpoint in this
+      // client is idempotent (react/outbox activities upsert, never duplicate).
+      if (error.isTransientNetworkError) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        return this._fetchOnce(url, options);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Single fetch attempt with timeout handling. @private
+   */
+  async _fetchOnce(url, options = {}) {
     // Create abort controller for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
@@ -84,11 +108,13 @@ export class HttpClient {
         });
       }
 
-      // Handle network errors
-      throw new NetworkError(error.message, {
+      // Handle network errors -- flagged for one retry by _fetch() above.
+      const networkError = new NetworkError(error.message, {
         url,
         originalError: error,
       });
+      networkError.isTransientNetworkError = true;
+      throw networkError;
     }
   }
 
