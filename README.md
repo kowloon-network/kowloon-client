@@ -215,4 +215,10 @@ npm test
 
 ## License
 
-MIT
+Licensed under the [Apache License, Version 2.0](LICENSE).
+
+You may use, modify and redistribute this software, including commercially
+and in closed-source products, provided you retain the copyright and licence
+notices, state any changes you made, and include the `NOTICE` file. The
+licence also grants an explicit patent licence from contributors, which
+terminates for anyone who brings a patent claim against the project.
