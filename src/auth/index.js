@@ -55,10 +55,11 @@ export class AuthClient {
    * @param {string} [credentials.email] - Email (optional)
    * @param {Object} [credentials.profile] - Profile data (optional)
    * @param {string[]} [credentials.acknowledgedRules] - IDs of every server rule the user ticked off
+   * @param {boolean} [credentials.acceptTerms] - True when the user agreed to the ToS + Privacy Policy. Required by servers that have published those pages.
    * @returns {Promise<Object>} { user, token }
    */
   async register(credentials) {
-    const { username, password, email, profile, inviteCode, acknowledgedRules } = credentials;
+    const { username, password, email, profile, inviteCode, acknowledgedRules, acceptTerms } = credentials;
 
     if (!username || !password) {
       throw new AuthenticationError('Username and password are required');
@@ -74,6 +75,7 @@ export class AuthClient {
       profile,
       inviteCode,
       acknowledgedRules,
+      acceptTerms,
     });
 
     if (!response.token) {
