@@ -18,6 +18,7 @@ src/
   notifications/index.js — NotificationsClient (list, unreadCount, markRead, markUnread, markAllRead, dismiss)
   admin/index.js         — AdminClient (CRUD for all types, settings, moderation) — also on client.admin, see below
   moderation/index.js    — ModerationClient (client-side block/mute filtering for anonymous cross-server views)
+  oauth/index.js         — OAuthClient (cross-server "visiting" identity; see server routes/oauth/*)
   embeds/index.js        — resolveEmbed()/isEmbeddable() registry (YouTube, etc.) shared with web + mobile
   prefs/manifest.js      — PREF_GROUPS/PREFS — shared source of truth for settings UIs (web + mobile)
   prefs/pins.js          — pin/unpin/togglePin/sortByPins — feed-selector pin helpers
@@ -29,7 +30,7 @@ src/
 ### Key Design Decisions — DO NOT CHANGE
 
 - **All methods take options objects** (not positional args): `client.feeds.getPost({ postId: "..." })`
-- **No follow/unfollow methods** — Kowloon uses circles. `addToCircle`/`removeFromCircle` IS the follow.
+- **Follow = circles** — Kowloon has no follow graph; `addToCircle`/`removeFromCircle` IS the follow. `activities.follow({ userId })`/`unfollow({ userId })` exist as convenience wrappers that add/remove the user in the caller's own Following circle.
 - **Reply is separate from Post** on the server. `createReply` sends `{ type: "Reply", objectType: "Reply", to: parentPostId }`.
 - **React is separate** too. `react` sends `{ type: "React", objectType: "React", to: targetId }`.
 - **Notifications are in NotificationsClient** — not in FeedClient.
@@ -58,7 +59,7 @@ client.search         // SearchClient
 
 All write operations go through `POST /outbox`.
 
-Methods: createPost, updatePost, deletePost, createReply, react, createActivity, createCircle, updateCircle, deleteCircle, addToCircle, removeFromCircle, createGroup, updateGroup, deleteGroup, joinGroup, leaveGroup, approveJoinRequest, rejectJoinRequest, createBookmark, updateBookmark, deleteBookmark, createPage, updatePage, deletePage, updateProfile, block, unblock, mute, unmute, flag, upload (delegates to FilesClient)
+Methods: createPost, updatePost, deletePost, createReply, react, follow, unfollow, createActivity, createCircle, updateCircle, deleteCircle, addToCircle, removeFromCircle, createGroup, updateGroup, deleteGroup, joinGroup, leaveGroup, approveJoinRequest, rejectJoinRequest, createBookmark, updateBookmark, deleteBookmark, createPage, updatePage, deletePage, updateProfile, block, unblock, mute, unmute, flag, upload (delegates to FilesClient)
 
 There is no `deleteReact()` — the server has no way to receive an "undo a reaction" request by ID (`Undo` requires the full original activity, not a target ID). To clear a reaction, call `react({ postId, emoji: '' })` — an empty/omitted emoji clears the existing reaction (see React's set/clear behavior below).
 
@@ -78,7 +79,7 @@ Files: getFile (metadata at `/files/:id/meta`)
 - `upload(options)` — `POST /files` multipart. Accepts `to`, `parentObject`, `generateThumbnail`, `thumbnailSizes`.
 - `list(options)` — `GET /files` (authenticated user's files)
 - `getMeta(fileId)` — `GET /files/:id/meta`
-- `serveUrl(fileId, { size?, token? })` — builds URL for `<img src>` etc. (not an HTTP call)
+- `serveUrl(fileId, { size? })` — builds URL for `<img src>` etc. (not an HTTP call). No `token` option (JWTs don't belong in URLs).
 - `delete(fileId)` — `DELETE /files/:id`
 
 Files are served at `GET /files/:id` (auth-controlled proxy). Thumbnails: `?size=200`.

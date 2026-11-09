@@ -42,6 +42,8 @@ export class KowloonClient {
       headers,
       timeout,
       onUnauthorized,
+      // A 401 on a token-carrying request clears that token (if still current).
+      onTokenInvalid: (token) => this.auth._invalidateToken(token),
     });
 
     // Auth client
@@ -51,6 +53,8 @@ export class KowloonClient {
     // client-side filtering of anonymously-fetched remote content. Created
     // before activities so block/unblock/mute/unmute can invalidate it.
     this.moderation = new ModerationClient(this.http, this.auth);
+    // Block/mute lists are per-user: drop them whenever the session changes.
+    this.auth._sessionListeners.push(() => this.moderation.invalidate());
 
     // Files client — instantiated before activities so activities can delegate to it
     this.files = new FilesClient(this.http);

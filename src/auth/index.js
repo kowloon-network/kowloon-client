@@ -1,7 +1,7 @@
 // Authentication module for Kowloon client
 
 import { getToken, setToken, removeToken } from '../utils/storage.js';
-import { AuthenticationError } from '../utils/errors.js';
+import { AuthenticationError, NetworkError } from '../utils/errors.js';
 
 /**
  * Authentication client
@@ -13,9 +13,24 @@ export class AuthClient {
    */
   constructor(http, storage = null) {
     this.http = http;
-    this.storage = storage;
+    // null must mean "use the default", not be passed through as the
+    // adapter (storage helpers only apply their default for undefined).
+    this.storage = storage ?? undefined;
     this._user = null;
     this._token = null;
+    // True once storage has been read, so "no token" is cached too rather
+    // than hitting storage on every anonymous request. Reset on set/logout.
+    this._tokenLoaded = false;
+    // Callbacks run whenever the session identity changes (login, register,
+    // setSession, logout) -- KowloonClient uses this to drop per-user caches.
+    this._sessionListeners = [];
+  }
+
+  /** @private */
+  _sessionChanged() {
+    for (const fn of this._sessionListeners) {
+      try { fn(); } catch { /* listener errors must not break auth */ }
+    }
   }
 
   /**
@@ -23,9 +38,22 @@ export class AuthClient {
    * @returns {Promise<string|null>}
    */
   async getToken() {
-    if (this._token) return this._token;
-    this._token = await getToken('kowloon_token', this.storage);
+    if (this._tokenLoaded) return this._token;
+    this._token = (await getToken('kowloon_token', this.storage)) || null;
+    this._tokenLoaded = true;
     return this._token;
+  }
+
+  /**
+   * Called by HttpClient when the server rejects `token` with a 401. Logs
+   * out only if that token is still the current one (a re-login during the
+   * in-flight request must not be undone). @private
+   * @returns {Promise<boolean>} true if the session was cleared
+   */
+  async _invalidateToken(token) {
+    if (!token || (await this.getToken()) !== token) return false;
+    await this.logout();
+    return true;
   }
 
   /**
@@ -84,8 +112,10 @@ export class AuthClient {
 
     // Store token and user
     this._token = response.token;
+    this._tokenLoaded = true;
     this._user = response.user;
     await setToken(this._token, 'kowloon_token', this.storage);
+    this._sessionChanged();
 
     return {
       user: this._user,
@@ -120,8 +150,10 @@ export class AuthClient {
 
     // Store token and user
     this._token = response.token;
+    this._tokenLoaded = true;
     this._user = response.user;
     await setToken(this._token, 'kowloon_token', this.storage);
+    this._sessionChanged();
 
     return {
       user: this._user,
@@ -138,8 +170,10 @@ export class AuthClient {
    */
   async setSession(token, user) {
     this._token = token;
+    this._tokenLoaded = true;
     this._user = user;
     await setToken(this._token, 'kowloon_token', this.storage);
+    this._sessionChanged();
   }
 
   /**
@@ -148,8 +182,10 @@ export class AuthClient {
    */
   async logout() {
     this._token = null;
+    this._tokenLoaded = true;
     this._user = null;
     await removeToken('kowloon_token', this.storage);
+    this._sessionChanged();
   }
 
   /**
@@ -164,6 +200,12 @@ export class AuthClient {
       const payload = this._decodeToken(token);
       this._user = payload.user || null;
       if (!this._user?.id) {
+        await this.logout();
+        return null;
+      }
+      // Expired token: don't resurrect a dead session from the cached
+      // snapshot (exp is seconds since epoch).
+      if (typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now()) {
         await this.logout();
         return null;
       }
@@ -186,8 +228,14 @@ export class AuthClient {
             groups: freshUser.groups ?? this._user.groups,
           };
         }
-      } catch {
-        // Non-fatal — keep the decoded snapshot if the refresh fails
+      } catch (err) {
+        // The server rejecting the token (401/403) or the account no longer
+        // existing (404) ends the session. A network failure (offline,
+        // timeout) or a transient 5xx keeps the cached snapshot.
+        if (!(err instanceof NetworkError) && [401, 403, 404].includes(err?.statusCode)) {
+          await this.logout();
+          return null;
+        }
       }
       return this._user;
     } catch (e) {
@@ -200,8 +248,8 @@ export class AuthClient {
   /**
    * Change the logged-in user's password.
    * Returns a fresh token, which replaces the stored one so the current
-   * session survives the change. Other existing sessions are NOT signed out —
-   * tokens are stateless and stay valid until they expire.
+   * session survives the change. The server signs out all OTHER existing
+   * sessions (tokens issued before the change are rejected).
    * @param {Object} passwords
    * @param {string} passwords.currentPassword
    * @param {string} passwords.newPassword

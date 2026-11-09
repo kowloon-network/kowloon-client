@@ -140,8 +140,14 @@ class AsyncStorageAdapter {
   }
 }
 
-// Default storage instance
-const defaultStorage = detectStorage();
+// Default storage instance -- detected lazily on first use, so passing your
+// own adapter never triggers detection (which, on React Native, require()s
+// AsyncStorage and warns when it's missing).
+let _defaultStorage = null;
+function defaultStorage() {
+  if (!_defaultStorage) _defaultStorage = detectStorage();
+  return _defaultStorage;
+}
 
 /**
  * Get token from storage
@@ -149,7 +155,7 @@ const defaultStorage = detectStorage();
  * @param {Object} storage - Custom storage adapter
  * @returns {Promise<string|null>}
  */
-export async function getToken(key = 'kowloon_token', storage = defaultStorage) {
+export async function getToken(key = 'kowloon_token', storage = defaultStorage()) {
   return await storage.getItem(key);
 }
 
@@ -160,7 +166,7 @@ export async function getToken(key = 'kowloon_token', storage = defaultStorage) 
  * @param {Object} storage - Custom storage adapter
  * @returns {Promise<void>}
  */
-export async function setToken(token, key = 'kowloon_token', storage = defaultStorage) {
+export async function setToken(token, key = 'kowloon_token', storage = defaultStorage()) {
   if (!token) {
     await storage.removeItem(key);
   } else {
@@ -174,7 +180,7 @@ export async function setToken(token, key = 'kowloon_token', storage = defaultSt
  * @param {Object} storage - Custom storage adapter
  * @returns {Promise<void>}
  */
-export async function removeToken(key = 'kowloon_token', storage = defaultStorage) {
+export async function removeToken(key = 'kowloon_token', storage = defaultStorage()) {
   await storage.removeItem(key);
 }
 
@@ -183,7 +189,7 @@ export async function removeToken(key = 'kowloon_token', storage = defaultStorag
  * @param {Object} storage - Custom storage adapter
  * @returns {Promise<void>}
  */
-export async function clearStorage(storage = defaultStorage) {
+export async function clearStorage(storage = defaultStorage()) {
   await storage.clear();
 }
 

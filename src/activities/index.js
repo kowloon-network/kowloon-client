@@ -257,7 +257,10 @@ export class ActivitiesClient {
     // Support legacy { toItemId, body } shape
     const normalized = {
       postId: options.postId || options.toItemId,
+      // Threaded replies + non-markdown bodies must survive the alias.
+      inReplyTo: options.inReplyTo,
       content: options.content || options.body,
+      mediaType: options.mediaType,
       attachments: options.attachments,
       dedupeKey: options.dedupeKey,
     };

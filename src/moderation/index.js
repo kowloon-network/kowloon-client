@@ -51,6 +51,9 @@ export class ModerationClient {
     this.auth = auth;
     this._cache = null;
     this._inflight = null;
+    // Bumped by invalidate(); a load that started under an older generation
+    // must not write its (stale, possibly other-user) result into the cache.
+    this._generation = 0;
   }
 
   async _loadCircle(circleId) {
@@ -62,7 +65,9 @@ export class ModerationClient {
     } catch {
       // Best-effort — if the circle can't be fetched (offline, transient
       // error), filtering just no-ops rather than blocking the caller.
-      return { actorIds: new Set(), domains: new Set() };
+      // `failed` keeps this empty result out of the cache so the next
+      // load() retries.
+      return { actorIds: new Set(), domains: new Set(), failed: true };
     }
   }
 
@@ -80,30 +85,42 @@ export class ModerationClient {
 
     const user = this.auth.getUser();
     if (!user?.id) {
-      this._cache = emptySets();
-      return this._cache;
+      // Logged out: nothing to filter, and don't cache -- a later login
+      // must fetch the real lists.
+      return emptySets();
     }
 
-    this._inflight = (async () => {
+    const generation = this._generation;
+    const inflight = (async () => {
       const [blocked, muted] = await Promise.all([
         this._loadCircle(user.blocked),
         this._loadCircle(user.muted),
       ]);
-      this._cache = {
+      const result = {
         blockedActorIds: blocked.actorIds,
         blockedDomains: blocked.domains,
         mutedActorIds: muted.actorIds,
         mutedDomains: muted.domains,
       };
-      this._inflight = null;
-      return this._cache;
+      // Only cache a complete result from the current generation.
+      if (generation === this._generation) {
+        if (!blocked.failed && !muted.failed) this._cache = result;
+        if (this._inflight === inflight) this._inflight = null;
+      }
+      return result;
     })();
-    return this._inflight;
+    this._inflight = inflight;
+    return inflight;
   }
 
-  /** Drop the cache — call after a successful block/unblock/mute/unmute. */
+  /**
+   * Drop the cache (and any in-flight load) — call after a successful
+   * block/unblock/mute/unmute. Also called automatically on login/logout.
+   */
   invalidate() {
     this._cache = null;
+    this._inflight = null;
+    this._generation++;
   }
 
   /**

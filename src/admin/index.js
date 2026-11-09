@@ -676,11 +676,12 @@ export class AdminClient {
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const response = await fetch(url, { method: 'POST', headers, body: formData });
+    // Typed KowloonError + session-expiry handling, same as request().
+    const body = this.http.parseRawBody(await response.text());
     if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      throw new Error(body?.error || `Restore failed with status ${response.status}`);
+      throw await this.http.rawResponseError(response.status, body, { url, token, fallback: 'Restore failed' });
     }
-    return await response.json();
+    return body;
   }
 
   async adminSearch(options) {
