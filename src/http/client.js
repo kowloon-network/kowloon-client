@@ -67,17 +67,34 @@ export class HttpClient {
       // One silent retry for a genuine network-layer failure (the browser's
       // fetch() throwing before any response arrived -- "Failed to fetch"),
       // NOT for a timeout/abort. This is the common case right after a laptop
-      // wakes from sleep: the page and its JS are already alive, but the OS
-      // network interface hasn't finished reconnecting yet, so the very next
-      // request fails even though a retry moments later succeeds fine. Safe
-      // to retry blindly here specifically because the request never reached
-      // the server in this failure mode, and every mutating endpoint in this
-      // client is idempotent (react/outbox activities upsert, never duplicate).
-      if (error.isTransientNetworkError) {
+      // wakes from sleep: the OS network interface hasn't finished
+      // reconnecting, so the next request fails though a retry moments later
+      // succeeds. A thrown fetch() does NOT prove the request never reached
+      // the server (the connection can drop after the body was sent), and
+      // many POSTs are not idempotent (register, changePassword,
+      // deleteAccount, createCircle...). So only retry when a duplicate is
+      // harmless: safe methods (GET/HEAD), or a POST carrying a `dedupeKey`
+      // the server uses to collapse duplicates.
+      if (error.isTransientNetworkError && this._isRetrySafe(options)) {
         await new Promise((resolve) => setTimeout(resolve, 400));
         return this._fetchOnce(url, options);
       }
       throw error;
+    }
+  }
+
+  /**
+   * Whether a request may be transparently re-sent. @private
+   */
+  _isRetrySafe(options = {}) {
+    const method = String(options.method || 'GET').toUpperCase();
+    if (method === 'GET' || method === 'HEAD') return true;
+    if (method !== 'POST' || typeof options.body !== 'string') return false;
+    try {
+      const parsed = JSON.parse(options.body);
+      return !!(parsed && (parsed.dedupeKey || parsed.object?.dedupeKey));
+    } catch {
+      return false;
     }
   }
 
@@ -108,7 +125,8 @@ export class HttpClient {
         });
       }
 
-      // Handle network errors -- flagged for one retry by _fetch() above.
+      // Handle network errors -- flagged as retry-eligible; _fetch() above
+      // decides whether this particular request is safe to re-send.
       const networkError = new NetworkError(error.message, {
         url,
         originalError: error,
