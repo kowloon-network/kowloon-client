@@ -33,9 +33,10 @@ export class AdminClient {
    * Build standard list params
    * @private
    */
-  _listParams({ page, since, showDeleted, type, deleted, search, status, targetType, actorId } = {}) {
+  _listParams({ page, limit, since, showDeleted, type, deleted, search, status, targetType, actorId } = {}) {
     const params = {};
     if (page) params.page = page;
+    if (limit) params.limit = limit;
     if (since) params.since = since;
     // showDeleted was the only way to reach ?deleted=, so a caller passing a
     // raw `deleted` value (e.g. AdminUsersPage's "All" filter, deleted:
