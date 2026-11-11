@@ -503,6 +503,57 @@ export class AdminClient {
    * Servers currently blocked or suspended by this server's admins.
    * @returns {Promise<{servers: Array, total: number}>}
    */
+  // ---- Block lists (server Blocked / Defederated circles) ----
+  // list: 'blocked' | 'defederated'. target: '@name@example.org' (a person)
+  // or 'example.org' (a server). Banning someone on THIS server permanently
+  // deletes their account -- the server refuses (409) unless confirmBan.
+
+  async getBlocklists() {
+    return await this.http.get('/admin/blocklist');
+  }
+
+  async addToBlocklist(options = {}) {
+    const { list, target, summary, confirmBan } = options;
+    if (!list) throw new ValidationError('list is required');
+    if (!target) throw new ValidationError('target is required');
+    return await this.http.post('/admin/blocklist', { list, target, summary, confirmBan: confirmBan === true });
+  }
+
+  async updateBlocklistEntry(options = {}) {
+    const { list, id, summary } = options;
+    if (!list || !id) throw new ValidationError('list and id are required');
+    return await this.http.patch(`/admin/blocklist/${list}/${encodeURIComponent(id)}`, { summary });
+  }
+
+  async removeFromBlocklist(options = {}) {
+    const { list, id } = options;
+    if (!list || !id) throw new ValidationError('list and id are required');
+    return await this.http.delete(`/admin/blocklist/${list}/${encodeURIComponent(id)}`);
+  }
+
+  async setBlocklistVisibility(options = {}) {
+    const { list, isPublic } = options;
+    if (!list) throw new ValidationError('list is required');
+    return await this.http.patch(`/admin/blocklist/${list}/visibility`, { public: isPublic === true });
+  }
+
+  // Banned emails / email domains. kind: 'email' | 'domain'.
+  async getBannedEmails() {
+    return await this.http.get('/admin/blocklist/emails');
+  }
+
+  async addBannedEmail(options = {}) {
+    const { kind = 'email', value, note } = options;
+    if (!value) throw new ValidationError('value is required');
+    return await this.http.post('/admin/blocklist/emails', { kind, value, note });
+  }
+
+  async removeBannedEmail(options = {}) {
+    const { kind = 'email', value } = options;
+    if (!value) throw new ValidationError('value is required');
+    return await this.http.delete(`/admin/blocklist/emails/${kind}/${encodeURIComponent(value)}`);
+  }
+
   async getModeratedServers() {
     return await this.http.get('/admin/servers/moderated');
   }
@@ -578,11 +629,16 @@ export class AdminClient {
     return await this.http.post(`/admin/flagged/${encodeURIComponent(flagId)}/hard-delete`);
   }
 
-  // Deactivate the flagged item's author account. Notifies the reporter only.
+  // Put the flagged item's author on the server Blocked list. For a local
+  // author that's a ban (permanent deletion) and needs confirmBan: true.
+  // Notifies the reporter only.
   async blockFlaggedAuthor(options) {
-    const { flagId } = options;
+    const { flagId, confirmBan, summary } = options;
     if (!flagId) throw new ValidationError('flagId is required');
-    return await this.http.post(`/admin/flagged/${encodeURIComponent(flagId)}/block`);
+    return await this.http.post(`/admin/flagged/${encodeURIComponent(flagId)}/block`, {
+      confirmBan: confirmBan === true,
+      summary,
+    });
   }
 
   // ---- Settings ----
