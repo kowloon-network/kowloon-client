@@ -284,6 +284,14 @@ export class AdminClient {
     return await this.http.get('/admin/bookmarks', { params: this._listParams(options) });
   }
 
+  // Save a new order for one set of sibling server bookmarks (same folder),
+  // top first.
+  async reorderBookmarks(options = {}) {
+    const { ids } = options;
+    if (!Array.isArray(ids) || !ids.length) throw new ValidationError('ids is required');
+    return await this.http.post('/admin/bookmarks/reorder', { ids });
+  }
+
   async getBookmark(options) {
     const { bookmarkId } = options;
     if (!bookmarkId) throw new ValidationError('bookmarkId is required');
@@ -329,6 +337,13 @@ export class AdminClient {
 
   async getPages(options = {}) {
     return await this.http.get('/admin/pages', { params: this._listParams(options) });
+  }
+
+  // Save a new order for one set of sibling pages (same parent), top first.
+  async reorderPages(options = {}) {
+    const { ids } = options;
+    if (!Array.isArray(ids) || !ids.length) throw new ValidationError('ids is required');
+    return await this.http.post('/admin/pages/reorder', { ids });
   }
 
   async getPage(options) {
