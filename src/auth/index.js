@@ -210,7 +210,7 @@ export class AuthClient {
         return null;
       }
       // Fetch fresh profile/prefs/admin flag so stale JWT snapshot doesn't linger.
-      // isServerAdmin and the user's system-circle IDs (following, groups,
+      // isServerAdmin / isServerMod and the user's system-circle IDs (following, groups,
       // etc.) are not in the JWT payload — only /auth/me carries them.
       try {
         const fresh = await this.http.get('/auth/me');
@@ -221,6 +221,7 @@ export class AuthClient {
             profile: freshUser.profile ?? this._user.profile,
             prefs: freshUser.prefs ?? this._user.prefs,
             isServerAdmin: !!freshUser.isServerAdmin,
+            isServerMod: !!freshUser.isServerMod,
             following: freshUser.following ?? this._user.following,
             allFollowing: freshUser.allFollowing ?? this._user.allFollowing,
             blocked: freshUser.blocked ?? this._user.blocked,
