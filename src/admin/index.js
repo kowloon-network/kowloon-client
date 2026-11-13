@@ -712,12 +712,24 @@ export class AdminClient {
 
   // ---- Backup / Restore ----
 
-  async createBackup() {
-    return await this.http.post('/admin/backup');
+  // kind: 'full' (database + uploaded files, the default) or 'database'.
+  async createBackup({ kind = 'full' } = {}) {
+    return await this.http.post('/admin/backup', { kind });
   }
 
   async listBackups() {
     return await this.http.get('/admin/backup');
+  }
+
+  // Schedule, space used by backups, size estimates and free disk.
+  async backupSummary() {
+    return await this.http.get('/admin/backup/summary');
+  }
+
+  // { database: 'off'|'daily'|'weekly', full: 'off'|'daily'|'weekly', keep, hour (UTC) }
+  async setBackupSchedule(schedule) {
+    if (!schedule || typeof schedule !== 'object') throw new ValidationError('schedule is required');
+    return await this.http.put('/admin/backup/schedule', schedule);
   }
 
   async getBackupJob(jobId) {
