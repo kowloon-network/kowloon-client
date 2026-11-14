@@ -227,6 +227,10 @@ export class AuthClient {
             blocked: freshUser.blocked ?? this._user.blocked,
             muted: freshUser.muted ?? this._user.muted,
             groups: freshUser.groups ?? this._user.groups,
+            // Own email (Settings). Absent for visiting sessions.
+            ...('email' in freshUser
+              ? { email: freshUser.email, emailVerified: !!freshUser.emailVerified }
+              : {}),
           };
         }
       } catch (err) {
@@ -274,6 +278,40 @@ export class AuthClient {
     }
 
     return response;
+  }
+
+  /**
+   * Ask the server to email a password-reset link. Works signed out. The
+   * server answers the same whether or not the address is registered, so
+   * this never reveals who has an account. The link opens the server's
+   * web reset page.
+   * @param {Object} options
+   * @param {string} options.email
+   * @returns {Promise<{ok: boolean, message: string}>}
+   */
+  async requestPasswordReset({ email } = {}) {
+    if (!email) throw new AuthenticationError('Email is required');
+    return await this.http.post('/auth/forgot-password', { email: email.trim() });
+  }
+
+  /**
+   * Change the logged-in user's email address. Requires the current
+   * password (the email is how an account is recovered). The new address
+   * starts unverified and is sent a verification link.
+   * @param {Object} options
+   * @param {string} options.password
+   * @param {string} options.email
+   * @returns {Promise<{ok: boolean, email: string, verificationSent: boolean}>}
+   */
+  async changeEmail({ password, email } = {}) {
+    if (!password || !email) {
+      throw new AuthenticationError('Password and new email are required');
+    }
+    const res = await this.http.post('/auth/change-email', { password, email });
+    if (this._user && res?.email) {
+      this._user = { ...this._user, email: res.email, emailVerified: false };
+    }
+    return res;
   }
 
   /**
