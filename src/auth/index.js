@@ -315,6 +315,43 @@ export class AuthClient {
   }
 
   /**
+   * Sign out every other session on this account (other phones, browsers)
+   * and keep this one: the server returns a fresh token, which is stored.
+   * @returns {Promise<{ok: boolean}>}
+   */
+  async signOutEverywhere() {
+    const response = await this.http.post('/auth/sign-out-everywhere', {});
+    if (response?.token) {
+      this._token = response.token;
+      await setToken(this._token, 'kowloon_token', this.storage);
+    }
+    return response;
+  }
+
+  /**
+   * "Download my data": status of the latest copy, or null. Once ready it
+   * carries `downloadUrl`, a signed link good for an hour -- open it in a
+   * browser to save the zip. Other fields: status (pending, running, done,
+   * failed), stage, readyAt, expiresAt, sizeBytes, fileName, error.
+   * @returns {Promise<Object|null>}
+   */
+  async getDataExport() {
+    const res = await this.http.get('/auth/export');
+    return res?.export ?? null;
+  }
+
+  /**
+   * Ask for a new copy of your data. It's built in the background; poll
+   * getDataExport() for progress. The server also emails when it's ready.
+   * Throws (status 429) if asked again within an hour.
+   * @returns {Promise<Object>} the export's status
+   */
+  async requestDataExport() {
+    const res = await this.http.post('/auth/export', {});
+    return res?.export ?? null;
+  }
+
+  /**
    * Permanently delete the logged-in user's account (Apple App Store
    * Guideline 5.1.1(v) self-service deletion). Requires the current
    * password. On success the account and its content are gone server-side,
