@@ -84,6 +84,8 @@ export class ActivitiesClient {
       tags, tag,                // accept both; tags takes precedence
       location, startTime, endTime, attachments, featuredImage,
       target,    // ID of the post being shared (for Link-type shares)
+      contentWarning, // { categories: [key], note } -- see CW_CATEGORIES
+      sensitive,      // true = blur photos and video
       dedupeKey,
     } = options;
 
@@ -117,6 +119,8 @@ export class ActivitiesClient {
     if (attachments) object.attachments = attachments;
     if (featuredImage) object.featuredImage = featuredImage;
     if (target) object.target = target;
+    if (contentWarning) object.contentWarning = contentWarning;
+    if (sensitive) object.sensitive = true;
 
     const activity = { type: 'Create', objectType: 'Post', object };
     if (to) activity.to = to;
@@ -155,6 +159,8 @@ export class ActivitiesClient {
     if (patch.endTime !== undefined) object.endTime = patch.endTime;
     if (patch.attachments !== undefined) object.attachments = patch.attachments;
     if (patch.featuredImage !== undefined) object.featuredImage = patch.featuredImage;
+    if (patch.contentWarning !== undefined) object.contentWarning = patch.contentWarning;
+    if (patch.sensitive !== undefined) object.sensitive = !!patch.sensitive;
 
     if (patch.to !== undefined) object.to = patch.to;
     if (patch.canReply !== undefined) object.canReply = patch.canReply;
@@ -195,7 +201,7 @@ export class ActivitiesClient {
    * @returns {Promise<Object>}
    */
   async reply(options) {
-    const { postId, inReplyTo, content, mediaType = 'text/markdown', attachments, dedupeKey } = options;
+    const { postId, inReplyTo, content, mediaType = 'text/markdown', attachments, contentWarning, sensitive, dedupeKey } = options;
 
     // `to` is whatever is being answered directly — a first-level reply targets
     // the post; a threaded reply targets the reply it answers.
@@ -208,6 +214,8 @@ export class ActivitiesClient {
       source: { content, mediaType },
     };
     if (attachments) object.attachments = attachments;
+    if (contentWarning) object.contentWarning = contentWarning;
+    if (sensitive) object.sensitive = true;
 
     const activity = {
       type: 'Reply',
@@ -229,12 +237,14 @@ export class ActivitiesClient {
    * @returns {Promise<Object>}
    */
   async updateReply(options) {
-    const { replyId, content, tags } = options;
+    const { replyId, content, tags, contentWarning, sensitive } = options;
     if (!replyId) throw new ValidationError('replyId is required');
 
     const object = {};
     if (content !== undefined) object.source = { content };
     if (tags !== undefined) object.tags = tags;
+    if (contentWarning !== undefined) object.contentWarning = contentWarning;
+    if (sensitive !== undefined) object.sensitive = !!sensitive;
 
     return await this._post({ type: 'Update', objectType: 'Reply', target: replyId, object });
   }
@@ -262,6 +272,8 @@ export class ActivitiesClient {
       content: options.content || options.body,
       mediaType: options.mediaType,
       attachments: options.attachments,
+      contentWarning: options.contentWarning,
+      sensitive: options.sensitive,
       dedupeKey: options.dedupeKey,
     };
     return this.reply(normalized);

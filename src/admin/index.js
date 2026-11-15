@@ -629,6 +629,31 @@ export class AdminClient {
     return await this.http.post(`/admin/flagged/${encodeURIComponent(flagId)}/hard-delete`);
   }
 
+  // Put a content warning on the flagged post or reply instead of removing
+  // it, and resolve the report. contentWarning = { categories, note };
+  // sensitive = blur its photos. Notifies the reporter and the author.
+  async warnFlaggedItem(options) {
+    const { flagId, contentWarning, sensitive } = options;
+    if (!flagId) throw new ValidationError('flagId is required');
+    return await this.http.post(`/admin/flagged/${encodeURIComponent(flagId)}/content-warning`, {
+      contentWarning: contentWarning ?? null,
+      sensitive: sensitive === true,
+    });
+  }
+
+  // Add, change or remove the content warning on any post or reply (no
+  // report needed). Pass contentWarning: null and sensitive: false to
+  // remove it. Moderators may use this. Notifies the author.
+  async setContentWarning(options) {
+    const { target, contentWarning, sensitive } = options;
+    if (!target) throw new ValidationError('target is required');
+    return await this.http.post('/admin/content-warning', {
+      target,
+      contentWarning: contentWarning ?? null,
+      sensitive: sensitive === true,
+    });
+  }
+
   // Put the flagged item's author on the server Blocked list. For a local
   // author that's a ban (permanent deletion) and needs confirmBan: true.
   // Notifies the reporter only.

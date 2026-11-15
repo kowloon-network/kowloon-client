@@ -17,10 +17,13 @@
 //                  platform supplies the picker (mobile: AudienceSelector)
 //   timezone     — an IANA time zone; platform supplies the picker
 
+import { CW_CATEGORIES, CW_CHOICES } from "../contentWarnings.js";
+
 export const PREF_GROUPS = [
   { key: "general", label: "General" },
   { key: "composing", label: "Composing" },
   { key: "feed", label: "Feed" },
+  { key: "contentWarnings", label: "Content warnings" },
   { key: "notifications", label: "Notifications" },
 ];
 
@@ -96,6 +99,26 @@ export const PREFS = [
     hint: "The default filter for your timeline (matches the feed filter bar).",
     options: POST_TYPE_OPTIONS,
     default: ["Note", "Article", "Media", "Link"],
+  },
+
+  // Content warnings (nested under prefs.contentWarnings.*): what to do with
+  // posts carrying each warning. "warn" = show the warning, tap to read;
+  // "hide" = collapse to one line.
+  ...CW_CATEGORIES.map((c, i) => ({
+    key: `contentWarnings.${c.key}`,
+    group: "contentWarnings",
+    type: "select",
+    label: c.label,
+    ...(i === 0 ? { hint: "For posts with each warning: show them, warn first, or hide them." } : {}),
+    options: CW_CHOICES,
+    default: "warn",
+  })),
+  {
+    key: "showSensitiveMedia",
+    group: "contentWarnings",
+    type: "toggle",
+    label: "Show sensitive photos without blurring",
+    default: false,
   },
 
   // Notifications (nested under prefs.notifications.*). "follow" is intentionally

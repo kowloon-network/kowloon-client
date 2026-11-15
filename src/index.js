@@ -103,6 +103,7 @@ export { AdminClient } from './admin/index.js';
 export { ModerationClient } from './moderation/index.js';
 export { OAuthClient } from './oauth/index.js';
 export * from './prefs/manifest.js';
+export * from './contentWarnings.js';
 export * from './prefs/pins.js';
 export * from './embeds/index.js';
 export * from './utils/kowloonId.js';
