@@ -19,6 +19,11 @@ export const CW_CATEGORIES = [
   { key: 'abuse', label: 'Abuse' },
   { key: 'medical', label: 'Medical' },
   { key: 'flashing', label: 'Flashing images' },
+  { key: 'drugs', label: 'Drugs and alcohol' },
+  { key: 'eating', label: 'Eating and weight' },
+  { key: 'bigotry', label: 'Bigotry or slurs' },
+  { key: 'animals', label: 'Animal harm' },
+  { key: 'phobias', label: 'Phobias' },
 ];
 
 export const CW_CHOICES = [
