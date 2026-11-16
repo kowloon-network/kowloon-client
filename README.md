@@ -6,10 +6,15 @@ Isomorphic JavaScript client library for Kowloon social network. Works seamlessl
 - ✅ **Browsers** (modern browsers with fetch support)
 - ✅ **React Native** (with AsyncStorage)
 
+**Documentation: <https://kowloon.network/docs/client/overview/>** -- one page per sub-client, plus the sharp edges. The rest of the Kowloon docs are at <https://kowloon.network/docs/>.
+
 ## Installation
 
+The library isn't published to npm. Clone this repository and install it from a path, the way the [web frontend](https://github.com/kowloon-network/kowloon-frontend) and the [app](https://github.com/kowloon-network/kowloon-mobile) do with a sibling checkout:
+
 ```bash
-npm install @kowloon/client
+git clone https://github.com/kowloon-network/kowloon-client.git client
+npm install ./client
 ```
 
 For React Native, also install AsyncStorage:
@@ -25,13 +30,14 @@ import { KowloonClient } from '@kowloon/client';
 
 // Create client
 const client = new KowloonClient({
-  baseUrl: 'https://kowloon.org'
+  baseUrl: 'https://social.example.com'
 });
 
-// Register a new user
+// Register a new user (every Kowloon server is invite-only)
 const { user, token } = await client.auth.register({
   username: 'alice',
   password: 'secret123',
+  inviteCode: 'the-code-from-your-invite',
   email: 'alice@example.com',
   profile: {
     name: 'Alice',
@@ -61,7 +67,7 @@ The client automatically stores tokens and restores sessions:
 
 ```javascript
 // First app load
-const client = new KowloonClient({ baseUrl: 'https://kowloon.org' });
+const client = new KowloonClient({ baseUrl: 'https://social.example.com' });
 
 // Restore previous session
 const user = await client.init();
@@ -93,8 +99,11 @@ Register a new user.
 **Parameters:**
 - `username` (string, required)
 - `password` (string, required)
+- `inviteCode` (string, required) - every registration needs an invite
 - `email` (string, optional)
 - `profile` (object, optional)
+- `acknowledgedRules` (string[], optional) - IDs of the server rules the user agreed to
+- `acceptTerms` (boolean, optional) - required by servers that publish Terms and a Privacy Policy
 
 **Returns:** `{ user, token }`
 
@@ -160,7 +169,7 @@ const customStorage = {
 };
 
 const client = new KowloonClient({
-  baseUrl: 'https://kowloon.org',
+  baseUrl: 'https://social.example.com',
   storage: customStorage
 });
 ```
@@ -212,6 +221,10 @@ npm test
 ### Environment Variables
 
 - `KOWLOON_BASE_URL` - Base URL for tests (default: `http://localhost:3000`)
+
+## Contributing
+
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before you start, and follow the [Code of Conduct](CODE_OF_CONDUCT.md). To report a security problem, see [SECURITY.md](SECURITY.md) -- please don't open a public issue.
 
 ## License
 
