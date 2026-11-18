@@ -38,6 +38,8 @@ export class FilesClient {
    * @param {string} [options.parentObject] - Parent object ID (post/page/etc) — inherits that object's visibility at serve time
    * @param {boolean} [options.generateThumbnail] - Generate thumbnails (for images)
    * @param {number[]} [options.thumbnailSizes] - Thumbnail sizes in px (default [200, 400])
+   * @param {{x: number, y: number}} [options.focus] - Images: where the subject is, as
+   *   fractions of width/height (0,0 = top left). Omit to let the server detect it.
    * @param {(progress: { loaded: number, total: number, percent: number }) => void} [options.onProgress] -
    *   Upload progress callback. Fired repeatedly as bytes go out over the wire.
    *   `total` is 0 (and `percent` is 0) if the browser/runtime can't report a
@@ -50,7 +52,7 @@ export class FilesClient {
   async upload(options) {
     const {
       file, filename, contentType, title, summary,
-      to, parentObject, generateThumbnail, thumbnailSizes, onProgress,
+      to, parentObject, generateThumbnail, thumbnailSizes, focus, onProgress,
       signal, timeout = DEFAULT_UPLOAD_TIMEOUT,
     } = options;
 
@@ -73,6 +75,9 @@ export class FilesClient {
     if (parentObject) formData.append('parentObject', parentObject);
     if (generateThumbnail) formData.append('generateThumbnail', 'true');
     if (thumbnailSizes) formData.append('thumbnailSizes', JSON.stringify(thumbnailSizes));
+    if (focus && Number.isFinite(focus.x) && Number.isFinite(focus.y)) {
+      formData.append('focus', `${focus.x},${focus.y}`);
+    }
 
     const token = await this.http.getToken();
     const url = this.http._buildUrl('/files/');
